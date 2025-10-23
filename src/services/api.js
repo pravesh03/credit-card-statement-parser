@@ -2,11 +2,14 @@ import axios from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+console.log('API Base URL:', API_BASE_URL)
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 seconds timeout
 })
 
 // Request interceptor
@@ -16,6 +19,7 @@ api.interceptors.request.use(
     return config
   },
   (error) => {
+    console.error('Request error:', error)
     return Promise.reject(error)
   }
 )
@@ -27,6 +31,16 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('API Error:', error.response?.data || error.message)
+    
+    // Provide user-friendly error messages
+    if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+      const errorMessage = new Error(
+        'Unable to connect to the backend server. Please ensure the backend is running and accessible.'
+      )
+      errorMessage.code = 'NETWORK_ERROR'
+      return Promise.reject(errorMessage)
+    }
+    
     return Promise.reject(error)
   }
 )
